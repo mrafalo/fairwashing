@@ -1,3 +1,8 @@
 config.yaml
 results*
 data
+.parquet
+.pkl
+.npy
+.fairwashing_analysis.ipynb
+.csv
