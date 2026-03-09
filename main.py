@@ -1,54 +1,176 @@
-import argparse
-import work
-import work.models as m
-import work.data as d
-import work.globals as g
-import work.reports as r
-import importlib
-import work.custom_logger as cl
-import time
+import pandas as pd
+from pathlib import Path
 
-logger = cl.get_logger()
+from work.training import train_all_models, train_logistic_l2
+from work.analysis import run_analysis_pipeline, build_model_summary
+from work.custom_logger import get_logger
 
 
-def model_iterator(_scenario):
-    logger.info("model iterator...")
-    df = d.load_data()
-    X_train, y_train, X_test, y_test = d.get_data()
-    res, m1 = m.model_random_forest(X_train, y_train, X_test, y_test)
-    logger.info(f"model OK AUC: {res}")
+logger = get_logger()
 
-    logger.info(f"surrogate rationalization")
-    m.surrogate_rationalization(df, m1)
+print("MAIN FILE LOADED")
 
-    logger.info(f"attribution inconsistency")
-    m.attribution_inconsistency(df, m1)
+# =========================================================
+# PROJECT PATHS
+# =========================================================
+# Determine project root and data directory automatically
 
-    logger.info(f"mainfoild embedding")
-    m.mainfold_embedding(df, m1)
+BASE_DIR = Path(__file__).resolve().parents[2]
+DATA_DIR = BASE_DIR / "data"
 
 
-def main_run(_mode, _scenario):
-    start = time.time()
-    logger.info(f"starting for mode {_mode}, scenario {_scenario}...")
-    if _mode == "1":
-        model_iterator(_scenario)
-    stop = time.time()
-    elapsed_sec = stop - start
-    logger.info("finished!, elapsed: " + str(elapsed_sec // 60) + " minutes")
+# =========================================================
+# FULL EXPERIMENT PIPELINE
+# =========================================================
+# Runs the complete experiment:
+#
+# 1. Load prepared EMBER datasets
+# 2. Train all models
+# 3. Run XAI analysis pipeline for every model
+# 4. Build a comparison table summarizing model properties
+#
+# This is the version used for the final experiment.
+# =========================================================
 
+# def main():
+#
+#     logger.info("Starting fairwashing experiment")
+#
+#     # =================================
+#     # LOAD DATA
+#     # =================================
+#
+#     logger.info("Loading datasets")
+#
+#     X_train = pd.read_parquet(DATA_DIR / "X_train.parquet")
+#     X_test  = pd.read_parquet(DATA_DIR / "X_test.parquet")
+#
+#     y_train = pd.read_parquet(DATA_DIR / "y_train.parquet")["Label"]
+#     y_test  = pd.read_parquet(DATA_DIR / "y_test.parquet")["Label"]
+#
+#     logger.info("Datasets loaded")
+#
+#     # =================================
+#     # TRAIN MODELS
+#     # =================================
+#
+#     models = train_all_models(
+#         X_train,
+#         y_train,
+#         X_test,
+#         y_test
+#     )
+#
+#     logger.info("Model training finished")
+#
+#     # =================================
+#     # RUN ANALYSIS FOR EACH MODEL
+#     # =================================
+#
+#     for model_name in models.keys():
+#
+#         logger.info(f"Running analysis for {model_name}")
+#
+#         try:
+#
+#             run_analysis_pipeline(
+#                 model_name,
+#                 X_test,
+#                 y_test,
+#                 mode="fast"
+#             )
+#
+#         except Exception as e:
+#
+#             logger.error(f"{model_name} failed: {e}")
+#
+#     # =================================
+#     # BUILD MODEL COMPARISON TABLE
+#     # =================================
+#
+#     build_model_summary()
+#
+#     logger.info("Experiment finished")
+#
+#
+# if __name__ == "__main__":
+#     main()
+
+
+# =========================================================
+# SMALL PIPELINE TEST
+# =========================================================
+# Quick pipeline test:
+#
+# - loads the prepared EMBER dataset
+# - takes a very small random sample
+# - trains a single model
+# - runs the analysis pipeline
+#
+# This allows verifying that the entire pipeline works
+# before launching the full experiment.
+# =========================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Mode and scenario")
-    parser.add_argument("_mode", type=str, help="run mode")
-    parser.add_argument("_scenario", type=str, help="scenario name")
-    args = parser.parse_args()
-    main_run(args._mode, args._scenario)
+
+    print("MAIN FUNCTION STARTED")
+
+    logger.info("Starting PIPELINE TEST")
+
+    # =================================
+    # LOAD DATA
+    # =================================
+
+    logger.info("Loading datasets")
+
+    X_train = pd.read_parquet(DATA_DIR / "X_train.parquet")
+    X_test  = pd.read_parquet(DATA_DIR / "X_test.parquet")
+
+    y_train = pd.read_parquet(DATA_DIR / "y_train.parquet")["Label"]
+    y_test  = pd.read_parquet(DATA_DIR / "y_test.parquet")["Label"]
+
+    logger.info("Datasets loaded")
+
+    # =================================
+    # CREATE SMALL SAMPLE
+    # =================================
+
+    X_train = X_train.sample(10000, random_state=42)
+    y_train = y_train.loc[X_train.index]
+
+    X_test = X_test.sample(5000, random_state=42)
+    y_test = y_test.loc[X_test.index]
+
+    logger.info("Using small test sample")
+
+    # =================================
+    # TRAIN SINGLE MODEL
+    # =================================
+
+    logger.info("Training small logistic model")
+
+    train_logistic_l2(
+        X_train,
+        y_train,
+        X_test,
+        y_test
+    )
+
+    # =================================
+    # RUN ANALYSIS PIPELINE
+    # =================================
+
+    logger.info("Running pipeline analysis")
+
+    run_analysis_pipeline(
+        "log_l2",
+        X_test,
+        y_test,
+        mode="fast"
+    )
+
+    logger.info("Pipeline test finished")
 
 
 if __name__ == "__main__":
     main()
-
-# importlib.reload(work.data)
-# importlib.reload(work.models)
-# importlib.reload(work.globals)
