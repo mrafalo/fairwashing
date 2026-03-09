@@ -1,11 +1,21 @@
+# configs
 config.yaml
+
+# results
 results*
-data
-.parquet
-.pkl
-.npy
-.fairwashing_analysis.ipynb
-.fairwashing_analysis.py
-.csv
+
+# data
+data/
+*.parquet
+*.csv
+*.npy
+
+# models
+*.pkl
+
+# python
 __pycache__/
 *.pyc
+
+# jupyter
+.ipynb_checkpoints/
