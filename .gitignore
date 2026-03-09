@@ -5,4 +5,7 @@ data
 .pkl
 .npy
 .fairwashing_analysis.ipynb
+.fairwashing_analysis.py
 .csv
+__pycache__/
+*.pyc
