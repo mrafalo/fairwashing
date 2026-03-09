@@ -25,7 +25,6 @@ logger = get_logger()
 
 
 
-
 # =====================================================
 # Plot basic model diagnostics
 # -----------------------------------------------------
@@ -42,65 +41,125 @@ logger = get_logger()
 
 def plot_model_diagnostics(y_test, y_prob, y_pred, model_name):
 
+    import os
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    from sklearn.metrics import (
+        roc_curve,
+        roc_auc_score,
+        confusion_matrix,
+        precision_recall_curve,
+        average_precision_score
+    )
+
+    y_test = np.asarray(y_test)
+    y_prob = np.asarray(y_prob)
+    y_pred = np.asarray(y_pred)
+
     # =========================
-    # ROC
+    # ROC CURVE
     # =========================
     fpr, tpr, _ = roc_curve(y_test, y_prob)
     auc = roc_auc_score(y_test, y_prob)
 
-    plt.figure()
+    plt.figure(figsize=(6,4))
+
     plt.plot(fpr, tpr, label=f"AUC = {auc:.3f}")
     plt.plot([0,1],[0,1],'--')
 
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.title(f"ROC Curve - {model_name}")
+
     plt.legend()
 
-    plt.savefig(os.path.join(PLOTS_DIR, f"roc_{model_name}.png"), dpi=300)
+    plt.savefig(
+        os.path.join(PLOTS_DIR, f"roc_{model_name}.png"),
+        dpi=300,
+        bbox_inches="tight"
+    )
+
     plt.close()
 
+
     # =========================
-    # Precision Recall
+    # PRECISION RECALL CURVE
     # =========================
     precision, recall, _ = precision_recall_curve(y_test, y_prob)
 
-    plt.figure()
-    plt.plot(recall, precision)
+    # sklearn zwraca punkty w odwrotnej kolejności
+    precision = precision[::-1]
+    recall = recall[::-1]
+
+    ap = average_precision_score(y_test, y_prob)
+
+    plt.figure(figsize=(6,4))
+
+    plt.plot(recall, precision, label=f"AP = {ap:.3f}")
 
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.title(f"Precision Recall Curve - {model_name}")
 
-    plt.savefig(os.path.join(PLOTS_DIR, f"precision_recall_{model_name}.png"), dpi=300)
+    plt.legend()
+
+    plt.savefig(
+        os.path.join(PLOTS_DIR, f"precision_recall_{model_name}.png"),
+        dpi=300,
+        bbox_inches="tight"
+    )
+
     plt.close()
 
+
     # =========================
-    # Confusion Matrix
+    # CONFUSION MATRIX
     # =========================
     cm = confusion_matrix(y_test, y_pred)
 
-    plt.figure()
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.figure(figsize=(5,4))
+
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues"
+    )
 
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
+
     plt.title(f"Confusion Matrix - {model_name}")
 
-    plt.savefig(os.path.join(PLOTS_DIR, f"confusion_matrix_{model_name}.png"), dpi=300)
+    plt.savefig(
+        os.path.join(PLOTS_DIR, f"confusion_matrix_{model_name}.png"),
+        dpi=300,
+        bbox_inches="tight"
+    )
+
     plt.close()
 
+
     # =========================
-    # Histogram
+    # PROBABILITY HISTOGRAM
     # =========================
-    plt.figure()
-    plt.hist(y_prob, bins=50)
+    plt.figure(figsize=(6,4))
+
+    plt.hist(y_prob, bins=100)
 
     plt.xlabel("Predicted probability")
     plt.ylabel("Count")
+
     plt.title(f"Predicted Probability Distribution - {model_name}")
 
-    plt.savefig(os.path.join(PLOTS_DIR, f"probability_hist_{model_name}.png"), dpi=300)
+    plt.savefig(
+        os.path.join(PLOTS_DIR, f"probability_hist_{model_name}.png"),
+        dpi=300,
+        bbox_inches="tight"
+    )
+
     plt.close()
 
 
